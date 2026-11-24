@@ -1,0 +1,32 @@
+# Local QA instruction file (must stay ignored before git add/commit)
+QA-code.md
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python & uv
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# SQLite & runtime data
+*.db
+*.db-wal
+*.db-shm
+backend/data/
+
+# Node & Frontend build
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+
+# OS & IDE
+.DS_Store
+Thumbs.db

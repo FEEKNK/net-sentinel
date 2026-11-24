@@ -1,0 +1,30 @@
+[project]
+name = "net-sentinel-backend"
+version = "0.1.0"
+description = "Cross-platform Network Monitor & Hybrid Snort/Behavioral IDS Backend"
+requires-python = ">=3.12"
+dependencies = [
+    "aiosqlite>=0.20.0",
+    "fastapi>=0.115.0",
+    "psutil>=6.1.0",
+    "pydantic-settings>=2.6.0",
+    "pysnmp>=7.1.0",
+    "scapy>=2.6.0",
+    "uvicorn[standard]>=0.32.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.0",
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+pythonpath = ["."]
+testpaths = ["tests"]

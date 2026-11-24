@@ -1,0 +1,12 @@
+"""Educational & practical Snort-compatible rules for NetSentinel."""
+
+# Format: action protocol src_ip src_port -> dst_ip dst_port (options;)
+# หมายเหตุ: สามารถแก้ไขหรือเพิ่มกฎใหม่ผ่านหน้า Dashboard เพื่อทดสอบและเรียนรู้ได้เลย
+
+alert tcp any any -> any 23 (msg:"Telnet Cleartext Traffic Detected (พอร์ต 23 ไม่เข้ารหัส)"; sid:1000001; rev:1; classtype:policy-violation; priority:2;)
+alert tcp any any -> any 21 (msg:"FTP Cleartext Connection Attempt"; sid:1000002; rev:1; classtype:policy-violation; priority:3;)
+alert tcp any any -> any [80,8080] (msg:"HTTP Potential SQL Injection Probe (UNION SELECT)"; content:"UNION SELECT"; nocase; sid:1000003; rev:1; classtype:web-application-attack; priority:1;)
+alert tcp any any -> any [80,8080,443] (msg:"HTTP Path Traversal Attempt (../)"; content:"../"; sid:1000004; rev:1; classtype:web-application-attack; priority:2;)
+alert tcp any any -> any 445 (msg:"SMB Port 445 Access Detected"; sid:1000005; rev:1; classtype:attempted-recon; priority:3;)
+alert tcp any any -> any 3389 (msg:"RDP Remote Desktop Connection Attempt"; sid:1000006; rev:1; classtype:attempted-admin; priority:3;)
+alert icmp any any -> any any (msg:"ICMP Suspicious Payload Signature"; content:"NETSENTINEL_TEST"; nocase; sid:1000007; rev:1; classtype:icmp-event; priority:2;)
