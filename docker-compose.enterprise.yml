@@ -1,0 +1,44 @@
+services:
+  netsentinel:
+    build: .
+    container_name: net-sentinel-core
+    network_mode: host
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    environment:
+      NETSENTINEL_HOST: "127.0.0.1"
+      NETSENTINEL_PORT: "8000"
+    volumes:
+      - netsentinel_data:/app/backend/data
+    restart: unless-stopped
+
+  caddy_https:
+    image: caddy:2-alpine
+    container_name: net-sentinel-https
+    network_mode: host
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - netsentinel
+    restart: unless-stopped
+
+  postgres_archive:
+    image: postgres:16-alpine
+    container_name: net-sentinel-postgres
+    environment:
+      POSTGRES_DB: netsentinel
+      POSTGRES_USER: netsentinel
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/db/postgres_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    restart: unless-stopped
+
+volumes:
+  netsentinel_data:
+  caddy_data:
+  postgres_data:

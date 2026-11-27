@@ -43,13 +43,24 @@ def validate_ip_address(raw_ip: str) -> str:
     return str(parsed)
 
 
-def detect_local_ipv4_interfaces() -> tuple[str, str, list[str]]:
+def detect_local_ipv4_interfaces(gateway_ip: str | None = None) -> tuple[str, str, list[str]]:
     """Discover primary active IPv4 interface, CIDR subnet, and all local IPs."""
     addrs = psutil.net_if_addrs()
     stats = psutil.net_if_stats()
     local_ips: list[str] = ["127.0.0.1"]
     best_iface = ""
     best_subnet = "192.168.1.0/24"
+    fallback_iface = ""
+    fallback_subnet = "192.168.1.0/24"
+
+    gw_addr: ipaddress.IPv4Address | None = None
+    if gateway_ip:
+        try:
+            parsed_gw = ipaddress.ip_address(gateway_ip)
+            if isinstance(parsed_gw, ipaddress.IPv4Address):
+                gw_addr = parsed_gw
+        except ValueError:
+            gw_addr = None
 
     for iface, addr_list in addrs.items():
         if_stat = stats.get(iface)
@@ -60,18 +71,24 @@ def detect_local_ipv4_interfaces() -> tuple[str, str, list[str]]:
                 if ip not in local_ips:
                     local_ips.append(ip)
                 if is_up and not ip.startswith("127.") and not ip.startswith("169.254."):
-                    if not best_iface:
+                    netmask = addr.netmask or "255.255.255.0"
+                    try:
+                        net = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
+                        if net.prefixlen < 20:
+                            net = ipaddress.IPv4Network(f"{ip}/24", strict=False)
+                    except ValueError:
+                        continue
+
+                    if gw_addr is not None and gw_addr in net:
                         best_iface = iface
-                        netmask = addr.netmask or "255.255.255.0"
-                        try:
-                            net = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
-                            # Clamp oversized local mask to /24 for safe default scanning
-                            if net.prefixlen < 20:
-                                net = ipaddress.IPv4Network(f"{ip}/24", strict=False)
-                            best_subnet = str(net)
-                        except ValueError:
-                            best_subnet = "192.168.1.0/24"
-    return best_iface or "default", best_subnet, local_ips
+                        best_subnet = str(net)
+                    elif not fallback_iface:
+                        fallback_iface = iface
+                        fallback_subnet = str(net)
+
+    if best_iface:
+        return best_iface, best_subnet, local_ips
+    return fallback_iface or "default", fallback_subnet, local_ips
 
 
 class FirewallAdapter(ABC):

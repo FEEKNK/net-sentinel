@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     port: int = 8000
 
     db_path: Path = BASE_DIR / "data" / "netsentinel.db"
+    database_url: str = ""
     snort_rules_path: Path = BASE_DIR / "rules" / "default.rules"
 
     # Safe-by-default Active Response controls

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -21,6 +21,10 @@ class CreateSnmpTargetRequest(BaseModel):
     host: str = Field(..., min_length=1, max_length=128)
     community: str = Field(default="public", min_length=1, max_length=64)
     port: int = Field(default=161, ge=1, le=65535)
+    snmp_version: Literal["v2c", "v3"] = "v2c"
+    v3_username: str = Field(default="", max_length=64)
+    v3_auth_key: str = Field(default="", max_length=128)
+    v3_priv_key: str = Field(default="", max_length=128)
 
 
 @router.get("/metrics")
@@ -43,10 +47,13 @@ async def poll_now(services: AppServices = Depends(get_services)) -> dict[str, A
 @router.get("/targets")
 async def list_targets(services: AppServices = Depends(get_services)) -> dict[str, Any]:
     targets = await services.db.list_snmp_targets()
-    enriched = [
-        {**t, "runtime": services.snmp_monitor.target_status.get(int(t["id"]), {"status": "idle"})}
-        for t in targets
-    ]
+    enriched = []
+    for t in targets:
+        safe_row = {k: v for k, v in t.items() if k not in ("v3_auth_key", "v3_priv_key")}
+        safe_row["runtime"] = services.snmp_monitor.target_status.get(
+            int(t["id"]), {"status": "idle"}
+        )
+        enriched.append(safe_row)
     return {"targets": enriched}
 
 
@@ -63,6 +70,10 @@ async def create_target(
             host=host,
             community=payload.community.strip(),
             port=payload.port,
+            snmp_version=payload.snmp_version,
+            v3_username=payload.v3_username.strip(),
+            v3_auth_key=payload.v3_auth_key.strip(),
+            v3_priv_key=payload.v3_priv_key.strip(),
         )
     except Exception as exc:
         if "UNIQUE" in str(exc).upper():

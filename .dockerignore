@@ -1,0 +1,8 @@
+.git
+.venv
+node_modules
+backend/data
+*.db
+QA-code.md
+QA-ux-ui.md
+.env

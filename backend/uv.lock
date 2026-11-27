@@ -234,6 +234,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "aiosqlite" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "psutil" },
     { name = "pydantic-settings" },
     { name = "pysnmp" },
@@ -243,7 +244,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
 ]
@@ -252,6 +252,7 @@ dev = [
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.20.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "httpx", specifier = ">=0.28.0" },
     { name = "psutil", specifier = ">=6.1.0" },
     { name = "pydantic-settings", specifier = ">=2.6.0" },
     { name = "pysnmp", specifier = ">=7.1.0" },
@@ -261,7 +262,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx", specifier = ">=0.28.0" },
     { name = "pytest", specifier = ">=8.3.0" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
 ]

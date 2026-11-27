@@ -8,11 +8,21 @@ from typing import Any
 
 from fastapi import Request, WebSocket
 
+from app.core.auth import LocalAuthManager
 from app.core.blocker import ActiveResponseBlocker
 from app.core.ids_engine import IDSEngine
+from app.core.ioc_matcher import IOCMatcher
+from app.core.netflow_collector import NetFlowCollector
+from app.core.notifier import WebhookNotifier
+from app.core.playbooks import PlaybookEngine
+from app.core.safety import SafetyPolicyManager
 from app.core.scanner import SubnetScanner
 from app.core.sniffer import PacketSniffer
 from app.core.snmp_monitor import SnmpMonitor
+from app.core.snmp_traps import SnmpTrapReceiver
+from app.core.syslog_server import SyslogServer
+from app.core.threat_intel import ThreatIntelClient
+from app.core.watchdog import InternetWatchdog
 from app.db.database import Database
 from app.platform.base import PlatformCapabilities
 
@@ -52,6 +62,17 @@ class LiveHub:
 
 
 @dataclass
+class ScanScheduleState:
+    """Persisted background auto-scan settings."""
+
+    enabled: bool = False
+    interval_seconds: int = 120
+    cidr: str = "192.168.1.0/24"
+    scan_ports: bool = False
+    last_run_at: float = 0.0
+
+
+@dataclass
 class AppServices:
     """Container attached to app.state holding core services."""
 
@@ -62,6 +83,17 @@ class AppServices:
     ids_engine: IDSEngine
     sniffer: PacketSniffer
     snmp_monitor: SnmpMonitor
+    notifier: WebhookNotifier
+    scan_schedule: ScanScheduleState
+    syslog_server: SyslogServer
+    watchdog: InternetWatchdog
+    threat_intel: ThreatIntelClient
+    auth_manager: LocalAuthManager
+    safety_manager: SafetyPolicyManager
+    ioc_matcher: IOCMatcher
+    trap_receiver: SnmpTrapReceiver
+    netflow_collector: NetFlowCollector
+    playbook_engine: PlaybookEngine
     hub: LiveHub = field(default_factory=LiveHub)
 
 

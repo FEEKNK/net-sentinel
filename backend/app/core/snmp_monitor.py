@@ -10,9 +10,12 @@ import psutil
 from app.db.database import Database
 
 
-OID_IF_IN_OCTETS_1 = "1.3.6.1.2.1.2.2.1.10.1"
-OID_IF_OUT_OCTETS_1 = "1.3.6.1.2.1.2.2.1.16.1"
+OID_IF_DESCR_BASE = "1.3.6.1.2.1.2.2.1.2"
+OID_IF_IN_BASE = "1.3.6.1.2.1.2.2.1.10"
+OID_IF_OUT_BASE = "1.3.6.1.2.1.2.2.1.16"
 OID_SYS_NAME = "1.3.6.1.2.1.1.5.0"
+OID_LLDP_REM_SYS_NAME_1 = "1.0.8802.1.1.2.1.4.1.1.9.0.1.1"
+OID_LLDP_REM_PORT_ID_1 = "1.0.8802.1.1.2.1.4.1.1.7.0.1.1"
 
 
 class SnmpMonitor:
@@ -80,6 +83,10 @@ class SnmpMonitor:
         host = str(target["host"])
         port = int(target.get("port", 161))
         community = str(target.get("community", "public"))
+        snmp_version = str(target.get("snmp_version", "v2c"))
+        v3_username = str(target.get("v3_username", ""))
+        v3_auth_key = str(target.get("v3_auth_key", ""))
+        v3_priv_key = str(target.get("v3_priv_key", ""))
         target_name = str(target["name"])
 
         try:
@@ -90,19 +97,42 @@ class SnmpMonitor:
                 ObjectType,
                 SnmpEngine,
                 UdpTransportTarget,
+                UsmUserData,
                 get_cmd,
+                usmAesCfb128Protocol,
+                usmHMACSHAAuthProtocol,
             )
 
             engine = SnmpEngine()
             transport = await UdpTransportTarget.create((host, port), timeout=1.5, retries=0)
+            if snmp_version == "v3" and v3_username:
+                auth_data = UsmUserData(
+                    v3_username,
+                    authKey=v3_auth_key or None,
+                    privKey=v3_priv_key or None,
+                    authProtocol=usmHMACSHAAuthProtocol if v3_auth_key else None,
+                    privProtocol=usmAesCfb128Protocol if v3_priv_key else None,
+                )
+            else:
+                auth_data = CommunityData(community, mpModel=1)
+
+            # Query sysName + interfaces 1..4 + LLDP neighbor hint
+            var_oids = [
+                ObjectType(ObjectIdentity(OID_SYS_NAME)),
+                ObjectType(ObjectIdentity(OID_LLDP_REM_SYS_NAME_1)),
+                ObjectType(ObjectIdentity(OID_LLDP_REM_PORT_ID_1)),
+            ]
+            for idx in (1, 2, 3, 4):
+                var_oids.append(ObjectType(ObjectIdentity(f"{OID_IF_DESCR_BASE}.{idx}")))
+                var_oids.append(ObjectType(ObjectIdentity(f"{OID_IF_IN_BASE}.{idx}")))
+                var_oids.append(ObjectType(ObjectIdentity(f"{OID_IF_OUT_BASE}.{idx}")))
+
             error_indication, error_status, _, var_binds = await get_cmd(
                 engine,
-                CommunityData(community, mpModel=1),
+                auth_data,
                 transport,
                 ContextData(),
-                ObjectType(ObjectIdentity(OID_SYS_NAME)),
-                ObjectType(ObjectIdentity(OID_IF_IN_OCTETS_1)),
-                ObjectType(ObjectIdentity(OID_IF_OUT_OCTETS_1)),
+                *var_oids,
             )
             if error_indication or error_status:
                 err_msg = str(error_indication or error_status)
@@ -110,8 +140,26 @@ class SnmpMonitor:
                 return None
 
             sys_name = str(var_binds[0][1]) if len(var_binds) > 0 else target_name
-            in_octets = int(var_binds[1][1]) if len(var_binds) > 1 else 0
-            out_octets = int(var_binds[2][1]) if len(var_binds) > 2 else 0
+            lldp_sys = str(var_binds[1][1]) if len(var_binds) > 1 else ""
+            lldp_port = str(var_binds[2][1]) if len(var_binds) > 2 else ""
+            interfaces: list[dict[str, Any]] = []
+            total_in = 0
+            total_out = 0
+            for i, idx in enumerate((1, 2, 3, 4)):
+                base = 3 + i * 3
+                if base + 2 >= len(var_binds):
+                    break
+                descr = str(var_binds[base][1])
+                in_raw = var_binds[base + 1][1]
+                out_raw = var_binds[base + 2][1]
+                try:
+                    in_val = int(in_raw)
+                    out_val = int(out_raw)
+                except (ValueError, TypeError):
+                    continue
+                total_in += in_val
+                total_out += out_val
+                interfaces.append({"index": idx, "name": descr, "in_octets": in_val, "out_octets": out_val})
 
             now = time.monotonic()
             in_bps = 0.0
@@ -120,12 +168,22 @@ class SnmpMonitor:
             if prev is not None:
                 prev_ts, prev_in, prev_out = prev
                 dt = max(0.1, now - prev_ts)
-                if in_octets >= prev_in:
-                    in_bps = round(((in_octets - prev_in) * 8.0) / dt, 1)
-                if out_octets >= prev_out:
-                    out_bps = round(((out_octets - prev_out) * 8.0) / dt, 1)
-            self._last_snmp[target_id] = (now, in_octets, out_octets)
-            self.target_status[target_id] = {"status": "online", "sys_name": sys_name}
+                if total_in >= prev_in:
+                    in_bps = round(((total_in - prev_in) * 8.0) / dt, 1)
+                if total_out >= prev_out:
+                    out_bps = round(((total_out - prev_out) * 8.0) / dt, 1)
+            self._last_snmp[target_id] = (now, total_in, total_out)
+            lldp_neighbors = (
+                [{"system": lldp_sys, "port": lldp_port}]
+                if lldp_sys and "No Such" not in lldp_sys
+                else []
+            )
+            self.target_status[target_id] = {
+                "status": "online",
+                "sys_name": sys_name,
+                "interfaces": interfaces,
+                "lldp_neighbors": lldp_neighbors,
+            }
 
             return await self.db.insert_snmp_metric(
                 target_id=target_id,

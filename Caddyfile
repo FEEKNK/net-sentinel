@@ -1,0 +1,8 @@
+# Caddy Automatic HTTPS Reverse Proxy for Enterprise / Hospital LAN Deployments
+# Replace soc.company.local with your internal DNS hostname (or use `tls internal` for private CA)
+
+{$NETSENTINEL_DOMAIN:localhost} {
+    tls internal
+    encode gzip
+    reverse_proxy netsentinel:8000
+}

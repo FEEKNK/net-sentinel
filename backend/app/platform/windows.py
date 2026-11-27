@@ -71,8 +71,8 @@ class WindowsNetworkHelper(NetworkHelper):
         sys_root = Path(os.environ.get("SystemRoot", r"C:\Windows"))
         npcap_available = (sys_root / "System32" / "Npcap").exists()
 
-        iface, subnet, local_ips = detect_local_ipv4_interfaces()
         gateway = _detect_windows_gateway()
+        iface, subnet, local_ips = detect_local_ipv4_interfaces(gateway_ip=gateway)
 
         return PlatformCapabilities(
             os_name=f"Windows {platform.release()}",

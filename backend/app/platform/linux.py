@@ -53,8 +53,8 @@ class LinuxNetworkHelper(NetworkHelper):
             )
         ) or shutil.which("tcpdump") is not None
 
-        iface, subnet, local_ips = detect_local_ipv4_interfaces()
         gateway = _detect_linux_gateway()
+        iface, subnet, local_ips = detect_local_ipv4_interfaces(gateway_ip=gateway)
 
         return PlatformCapabilities(
             os_name=f"Linux {platform.release()}",

@@ -1,5 +1,6 @@
-# Local QA instruction file (must stay ignored before git add/commit)
+# Local QA instruction files (must stay ignored before git add/commit)
 QA-code.md
+QA-ux-ui.md
 
 # Environment & secrets
 .env

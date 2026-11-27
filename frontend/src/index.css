@@ -3,5 +3,60 @@
 @layer base {
   body {
     font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.55;
+  }
+
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 2px solid #22d3ee;
+    outline-offset: 2px;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  aside,
+  header,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  body,
+  main {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    overflow: visible !important;
+  }
+
+  .bg-slate-900,
+  .bg-slate-950 {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
   }
 }

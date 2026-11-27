@@ -26,9 +26,11 @@ class ActiveResponseBlocker:
         auto_block_enabled: bool = False,
         auto_block_threshold: str = "critical",
         block_ttl_seconds: int = 3600,
+        safety_manager: Any | None = None,
     ) -> None:
         self.db = db
         self.firewall = firewall
+        self.safety_manager = safety_manager
         self.protected_ips: set[str] = {"127.0.0.1", "::1"} | {
             validate_ip_address(ip) for ip in protected_ips if ip
         }
@@ -62,9 +64,13 @@ class ActiveResponseBlocker:
             self.whitelist_ips = clean
 
     def is_whitelisted(self, ip: str) -> bool:
-        """Return True if IP is protected (loopback, host, gateway) or user-whitelisted."""
+        """Return True if IP is protected (loopback, host, gateway), excluded VLAN, or user-whitelisted."""
         safe_ip = validate_ip_address(ip)
-        return safe_ip in self.protected_ips or safe_ip in self.whitelist_ips
+        if safe_ip in self.protected_ips or safe_ip in self.whitelist_ips:
+            return True
+        if self.safety_manager is not None and self.safety_manager.is_ip_in_excluded_cidr(safe_ip):
+            return True
+        return False
 
     async def set_policy(
         self,
@@ -114,6 +120,8 @@ class ActiveResponseBlocker:
 
     async def evaluate_alert(self, *, source_ip: str, severity: str, title: str) -> str:
         """Auto-block source IP if policy allows and severity meets threshold."""
+        if self.safety_manager is not None and self.safety_manager.is_hospital_safe:
+            return "logged_passive_hospital_mode"
         if not self.auto_block_enabled:
             return "logged"
         thresh_rank = SEVERITY_RANK.get(self.auto_block_threshold, 4)
@@ -137,7 +145,7 @@ class ActiveResponseBlocker:
             datetime.now(timezone.utc) + timedelta(seconds=self.block_ttl_seconds)
         ).isoformat()
 
-        if self.dry_run:
+        if self.dry_run or (self.safety_manager is not None and self.safety_manager.is_hospital_safe):
             record = await self.db.upsert_blocked_ip(
                 ip=safe_ip,
                 reason=reason,

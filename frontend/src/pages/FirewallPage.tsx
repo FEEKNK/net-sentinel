@@ -206,26 +206,36 @@ export function FirewallPage({ onPolicyChanged }: FirewallPageProps) {
 
             <form onSubmit={handleManualBlockSubmit} className="space-y-2 border-t border-slate-800 pt-3">
               <p className="text-xs font-medium text-slate-300">Manual Block IP</p>
-              <div className="flex flex-wrap gap-2">
-                <input
-                  type="text"
-                  value={manualIp}
-                  onChange={(e) => setManualIp(e.target.value)}
-                  placeholder="IP เช่น 203.0.113.55"
-                  aria-label="Manual block IP"
-                  className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 font-mono text-xs text-slate-100"
-                />
-                <input
-                  type="text"
-                  value={manualReason}
-                  onChange={(e) => setManualReason(e.target.value)}
-                  placeholder="เหตุผล (ไม่บังคับ)"
-                  aria-label="Block reason"
-                  className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs text-slate-100"
-                />
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="flex-1 min-w-[140px]">
+                  <label htmlFor="manual-block-ip" className="block text-[11px] text-slate-400">
+                    Target IP
+                  </label>
+                  <input
+                    id="manual-block-ip"
+                    type="text"
+                    value={manualIp}
+                    onChange={(e) => setManualIp(e.target.value)}
+                    placeholder="203.0.113.55"
+                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 font-mono text-xs text-slate-100"
+                  />
+                </div>
+                <div className="flex-1 min-w-[140px]">
+                  <label htmlFor="manual-block-reason" className="block text-[11px] text-slate-400">
+                    เหตุผล (ไม่บังคับ)
+                  </label>
+                  <input
+                    id="manual-block-reason"
+                    type="text"
+                    value={manualReason}
+                    onChange={(e) => setManualReason(e.target.value)}
+                    placeholder="Port scan detected"
+                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs text-slate-100"
+                  />
+                </div>
                 <button
                   type="submit"
-                  className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-500"
+                  className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-150 hover:bg-rose-500"
                 >
                   Block IP
                 </button>
@@ -280,20 +290,25 @@ export function FirewallPage({ onPolicyChanged }: FirewallPageProps) {
               </div>
             </div>
 
-            <form onSubmit={handleAddWhitelist} className="flex gap-2 border-t border-slate-800 pt-3">
-              <input
-                type="text"
-                value={newWhitelist}
-                onChange={(e) => setNewWhitelist(e.target.value)}
-                placeholder="เพิ่ม IP เข้า Whitelist"
-                aria-label="New whitelist IP"
-                className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 font-mono text-xs text-slate-100"
-              />
+            <form onSubmit={handleAddWhitelist} className="flex items-end gap-2 border-t border-slate-800 pt-3">
+              <div className="flex-1">
+                <label htmlFor="new-whitelist-ip" className="block text-[11px] text-slate-400">
+                  เพิ่ม IP ที่ปลอดภัย (Whitelist)
+                </label>
+                <input
+                  id="new-whitelist-ip"
+                  type="text"
+                  value={newWhitelist}
+                  onChange={(e) => setNewWhitelist(e.target.value)}
+                  placeholder="192.168.1.50"
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 font-mono text-xs text-slate-100"
+                />
+              </div>
               <button
                 type="submit"
-                className="inline-flex items-center gap-1 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-700"
+                className="inline-flex items-center gap-1 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-200 transition-colors duration-150 hover:bg-slate-700"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 เพิ่ม
               </button>
             </form>

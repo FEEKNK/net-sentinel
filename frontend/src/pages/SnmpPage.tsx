@@ -126,46 +126,67 @@ export function SnmpPage({ metrics, onMetricsUpdated }: SnmpPageProps) {
       {/* Add SNMP Target */}
       <form
         onSubmit={handleAddTarget}
-        className="grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-900/70 p-4 sm:grid-cols-5"
+        className="grid grid-cols-1 items-end gap-3 rounded-xl border border-slate-800 bg-slate-900/70 p-4 sm:grid-cols-5"
       >
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="ชื่ออุปกรณ์ (เช่น Core-Router)"
-          aria-label="SNMP target name"
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100"
-        />
-        <input
-          type="text"
-          value={host}
-          onChange={(e) => setHost(e.target.value)}
-          placeholder="Host IP (เช่น 192.168.1.1)"
-          aria-label="SNMP target host"
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-slate-100"
-        />
-        <input
-          type="text"
-          value={community}
-          onChange={(e) => setCommunity(e.target.value)}
-          placeholder="Community (public)"
-          aria-label="SNMP community"
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-slate-100"
-        />
-        <input
-          type="number"
-          value={port}
-          onChange={(e) => setPort(e.target.value)}
-          placeholder="Port (161)"
-          aria-label="SNMP port"
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-slate-100"
-        />
+        <div>
+          <label htmlFor="snmp-name" className="block text-[11px] font-medium text-slate-300">
+            ชื่ออุปกรณ์
+          </label>
+          <input
+            id="snmp-name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="เช่น Core-Router"
+            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100"
+          />
+        </div>
+        <div>
+          <label htmlFor="snmp-host" className="block text-[11px] font-medium text-slate-300">
+            Host IP
+          </label>
+          <input
+            id="snmp-host"
+            type="text"
+            value={host}
+            onChange={(e) => setHost(e.target.value)}
+            placeholder="192.168.1.1"
+            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-slate-100"
+          />
+        </div>
+        <div>
+          <label htmlFor="snmp-community" className="block text-[11px] font-medium text-slate-300">
+            Community String
+          </label>
+          <input
+            id="snmp-community"
+            type="text"
+            value={community}
+            onChange={(e) => setCommunity(e.target.value)}
+            placeholder="public"
+            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-slate-100"
+          />
+        </div>
+        <div>
+          <label htmlFor="snmp-port" className="block text-[11px] font-medium text-slate-300">
+            Port
+          </label>
+          <input
+            id="snmp-port"
+            type="number"
+            inputMode="numeric"
+            value={port}
+            onChange={(e) => setPort(e.target.value)}
+            placeholder="161"
+            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs tabular-nums text-slate-100"
+          />
+        </div>
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-cyan-600 px-3 py-2 text-xs font-semibold text-white hover:bg-cyan-500 disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-cyan-600 px-3 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-cyan-500 disabled:opacity-50"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4" aria-hidden="true" />
           เพิ่ม SNMP Target
         </button>
       </form>
@@ -210,6 +231,11 @@ export function SnmpPage({ metrics, onMetricsUpdated }: SnmpPageProps) {
                       {t.runtime?.status ?? "idle"}
                       {t.runtime?.message ? ` (${t.runtime.message})` : ""}
                     </span>
+                    {t.runtime?.lldp_neighbors && t.runtime.lldp_neighbors.length > 0 && (
+                      <div className="mt-1 font-mono text-[11px] text-cyan-300" translate="no">
+                        LLDP: {t.runtime.lldp_neighbors.map((n) => `${n.system} [${n.port}]`).join(", ")}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button

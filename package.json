@@ -1,0 +1,11 @@
+{
+  "name": "net-sentinel",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c cyan,green \"uv run --project backend uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload\" \"npm --prefix frontend run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

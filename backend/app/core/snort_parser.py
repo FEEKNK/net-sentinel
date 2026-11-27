@@ -34,6 +34,8 @@ class SnortRule:
     dst_port: str
     msg: str
     contents: list[str] = field(default_factory=list)
+    pcre: str | None = None
+    pcre_flags: int = 0
     nocase: bool = False
     classtype: str = "misc-activity"
     priority: int = 3
@@ -104,6 +106,20 @@ def parse_snort_rules(rules_text: str) -> RuleParseResult:
         nocase = bool(opts.get("nocase", False))
         classtype = str(opts.get("classtype", "misc-activity")).strip() or "misc-activity"
 
+        raw_pcre = opts.get("pcre")
+        pcre_pattern: str | None = None
+        pcre_flags = 0
+        if isinstance(raw_pcre, str) and raw_pcre:
+            if len(raw_pcre) > 200:
+                errors.append({"line": line_no, "error": "PCRE pattern exceeds 200 chars", "raw": line[:120]})
+                continue
+            pcre_pattern, pcre_flags = _parse_pcre_literal(raw_pcre)
+            try:
+                re.compile(pcre_pattern, pcre_flags)
+            except re.error as exc:
+                errors.append({"line": line_no, "error": f"Invalid PCRE regex: {exc}", "raw": line[:120]})
+                continue
+
         rules.append(
             SnortRule(
                 sid=sid,
@@ -116,6 +132,8 @@ def parse_snort_rules(rules_text: str) -> RuleParseResult:
                 dst_port=dst_port,
                 msg=msg,
                 contents=contents,
+                pcre=pcre_pattern,
+                pcre_flags=pcre_flags,
                 nocase=nocase,
                 classtype=classtype,
                 priority=priority,
@@ -124,6 +142,24 @@ def parse_snort_rules(rules_text: str) -> RuleParseResult:
         )
 
     return RuleParseResult(rules=rules, errors=errors)
+
+
+def _parse_pcre_literal(raw: str) -> tuple[str, int]:
+    """Parse `/pattern/flags` Snort PCRE literal into (pattern, re_flags)."""
+    text = raw.strip()
+    flags = 0
+    if text.startswith("/") and text.count("/") >= 2:
+        last_slash = text.rfind("/")
+        pattern = text[1:last_slash]
+        flag_str = text[last_slash + 1 :]
+        if "i" in flag_str:
+            flags |= re.IGNORECASE
+        if "m" in flag_str:
+            flags |= re.MULTILINE
+        if "s" in flag_str:
+            flags |= re.DOTALL
+        return pattern, flags
+    return text, flags
 
 
 def _parse_options(opts_body: str) -> dict[str, object]:
@@ -254,5 +290,9 @@ def match_rule(
             cmp_needle = needle.lower() if rule.nocase else needle
             if cmp_needle not in haystack:
                 return False
+
+    if rule.pcre:
+        if not re.search(rule.pcre, payload[:4096], rule.pcre_flags):
+            return False
 
     return True
